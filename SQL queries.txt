@@ -1,0 +1,68 @@
+1.What are the top 5 brands by receipts scanned for most recent month?
+
+select distinct b.brandCode, count(*) as Frequency
+from receipts_final a left join rewardsReceiptItemList_final b
+on a._id = b._id
+where  (select max(JULIANDAY( date(dateScanned))) from receipts_final)
+        - JULIANDAY(date(dateScanned) )<=30   and  b.brandCode is not NULL and b.brandCode != 'Null'
+group by b.brandCode
+order by count(*) DESC
+limit 5
+
+2.How does the ranking of the top 5 brands by receipts scanned for the recent month compare to the ranking for the previous month?
+
+select distinct b.brandCode, count(*) as Frequency
+from receipts_final a left join rewardsReceiptItemList_final b
+on a._id = b._id
+where  (select max(JULIANDAY( date(dateScanned))) from receipts_final)
+        - JULIANDAY(date(dateScanned) )<=60
+		and (select max(JULIANDAY( date(dateScanned))) from receipts_final)
+        - JULIANDAY(date(dateScanned) )>30
+		and  b.brandCode is not NULL and b.brandCode != 'Null'
+group by b.brandCode
+order by count(*) DESC
+limit 5
+
+3.When considering average spend from receipts with 'rewardsReceiptStatus’ of ‘Accepted’ or ‘Rejected’, which is greater?
+
+select
+case WHEN (select avg(totalSpent) from receipts_final where rewardsReceiptStatus = 'FINISHED' ) >
+(select avg(totalSpent) from receipts_final where rewardsReceiptStatus = 'REJECTED' )
+THEN 'Average spent for receipts accepted is greater'
+else 'Average spent for receipts rejected is greater' end
+as Result
+
+4.When considering total number of items purchased from receipts with 'rewardsReceiptStatus’ of ‘Accepted’ or ‘Rejected’, which is greater?
+
+select
+case WHEN (select sum(purchasedItemCount) from receipts_final where rewardsReceiptStatus = 'FINISHED' ) >
+(select sum(purchasedItemCount) from receipts_final where rewardsReceiptStatus = 'REJECTED' )
+THEN 'Total items purchased for receipts accepted is greater'
+else 'Total items purchased for receipts rejected is greater' end
+as Result
+
+5.Which brand has the most spend among users who were created within the past 6 months?
+
+select b.brandCode, sum(finalPrice) as Spent
+from receipts_final a left join rewardsReceiptItemList_final b
+on a._id = b._id and a.userId in (
+ select _id from users_final where (select max(JULIANDAY( date(createdDate))) from users_final)
+                                                      - JULIANDAY( date(createdDate)) <= 180
+													  )
+where b.brandCode!='Null' and b.brandCode is not NULL
+group by b.brandCode
+order by Spent DESC
+limit 1
+
+6.Which brand has the most transactions among users who were created within the past 6 months?
+
+select b.brandCode, count(b._id) as Transaction_Count
+from receipts_final a left join rewardsReceiptItemList_final b
+on a._id = b._id and a.userId in (
+ select _id from users_final where (select max(JULIANDAY( date(createdDate))) from users_final)
+                                                      - JULIANDAY( date(createdDate)) <= 180
+													  )
+where b.brandCode!='Null' and b.brandCode is not NULL
+group by b.brandCode
+order by Transaction_Count DESC
+limit 1
